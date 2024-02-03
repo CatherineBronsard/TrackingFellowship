@@ -1,0 +1,95 @@
+version: "3"
+
+services:
+  frontend:
+    environment:
+      REACT_APP_BASE_URL: http://52.185.184.16:3500/
+    image: broc1603/game-stat-web-app:latest
+    ports:
+      - "3000:3000"
+    networks:
+      - front-tier
+      - back-tier
+#    configs:
+#      - httpd-config
+#    secrets:
+#      - server-certificate
+
+  database:
+    image: mysql
+    ports:
+      - 3306:3306
+    environment:
+      #POSTGRES_USER: admin # The PostgreSQL user (useful to connect to the database)
+      #POSTGRES_PASSWORD: pwd # The PostgreSQL password (useful to connect to the database)
+      #APP_DB_USER: admin
+      #APP_DB_PASS: pwd
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: 'pwd'
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_DATABASE: TheTrackingFellowship
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./01-createdb.sql:/docker-entrypoint-initdb.d/01-createdb.sql
+    networks:
+      - back-tier
+
+  back-end:
+    image: broc1603/game-stat-api:latest
+    ports:
+      - 3500:80
+    networks:
+      - back-tier
+      - front-tier
+  
+  lol-module:
+    image: broc1603/lol-module:latest
+    ports:
+      - 3600:80
+    environment:
+      API_KEY: RGAPI-41a3bc6b-1820-4a77-a80a-c3fbf767a87e
+    networks:
+      - back-tier
+
+  mongodb:
+      image: mongo:latest
+      container_name: mongodb
+      restart: always
+      environment:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: pwd
+          MONGO_INITDB_DATABASE: TheTrackingFellowship
+      ports:
+          - 27017:27017
+      volumes:
+          - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks: 
+      - back-tier
+
+  tft-module:
+    image: tft
+    ports:
+      - 3700:80
+    environment:
+      API_KEY: RGAPI-41a3bc6b-1820-4a77-a80a-c3fbf767a87e
+    networks:
+      - back-tier
+
+volumes:
+  db-data:
+    driver: local
+    #driver_opts:
+    #  size: "1GiB"
+
+#configs:
+#  httpd-config:
+#    external: true
+
+#secrets:
+#  server-certificate:
+#    external: true
+
+networks:
+  # The presence of these objects is sufficient to define them
+  front-tier: {}
+  back-tier: {}
